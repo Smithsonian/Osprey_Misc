@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-# Script to update the Osprey statistics
-# https://github.com/Smithsonian/Osprey
+# Script to update a folder when delivering to DAMS
+# https://github.com/Smithsonian/Osprey_Misc
 #
 #
 ############################################
@@ -15,7 +15,7 @@ import pymysql
 # Import settings from settings.py file
 import settings
 
-ver = "0.1"
+ver = "0.2"
 
 
 if len(sys.argv) == 1:

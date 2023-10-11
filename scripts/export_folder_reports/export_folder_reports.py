@@ -66,22 +66,41 @@ def main():
 
     workbook.save(filename=filename)
 
-    # # Folders info
-    # filename = "{}/folders_summary.xlsx".format(settings.export_to)
-    # workbook = Workbook()
-    # sheet = workbook.active
-    # for attrib, value in project_info.items():
-    #     # print("{}: {}".format(attrib, value))
-    #     if attrib == "folders":
-    #         for attrib1, value1 in project_info.items():
-    #     else:
-    #         continue
-    #
-    # workbook.save(filename=filename)
+    # Folders info
+    filename = "{}/project_folders.xlsx".format(settings.export_to)
+    workbook = Workbook()
+    sheet = workbook.active
+
+    i = 1
+    for attrib, value in project_info.items():
+        if attrib != "folders":
+            continue
+        else:
+            folder_info = value
+        for values in folder_info:
+            for att, val in values.items():
+                if att == "folder":
+                    sheet["A{}".format(i)] = att
+                    sheet["B{}".format(i)] = val
+                    i += 1
+            for att, val in values.items():            
+                if att == "folder" or att == "delivered_to_dams" or att == "folder_path" or att == "error_info" or att == "file_errors" or att == "no_files" or att == "notes" or att == "project_id":
+                    continue
+                else:
+                    sheet["B{}".format(i)] = att
+                    sheet["C{}".format(i)] = val
+                    i += 1
+
+    workbook.save(filename=filename)
+
 
     folders_storage = "{}/folders".format(settings.export_to)
     if not os.path.exists(folders_storage):
         os.makedirs(folders_storage)
+    
+    folders_qc_storage = "{}/folders_qc".format(settings.export_to)
+    if not os.path.exists(folders_qc_storage):
+        os.makedirs(folders_qc_storage)
 
     for folder in project_info['folders']:
         folder_id = folder['folder_id']
@@ -100,6 +119,19 @@ def main():
             cols.append(pcheck)
         filename = "{}/{}.xlsx".format(folders_storage, folder_info['folder'])
         file_df.to_excel(filename, columns=cols, header=True, index=False)
+        # Save QC, if any
+        r = requests.post('{}/api/folders/qc/{}'.format(settings.api_url, folder_id), data=payload_api)
+        if r.status_code != 200:
+            # Something went wrong
+            query_results = r.text.encode('utf-8')
+            print("API Returned Error: {}".format(query_results))
+            sys.exit(1)
+
+        qc_info = json.loads(r.text.encode('utf-8'))
+        file_df = pd.DataFrame(qc_info['qc'])
+        # cols = ['file_name', 'file_qc', 'file_timestamp', 'full_name', 'qc_info', 'updated_at']
+        filename = "{}/{}.xlsx".format(folders_qc_storage, folder_info['folder'])
+        file_df.to_excel(filename, header=True, index=False)
 
 
 ############################################
