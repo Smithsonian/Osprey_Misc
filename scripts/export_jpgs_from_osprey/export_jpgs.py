@@ -6,20 +6,16 @@
 # Import modules
 ############################################
 import sys
-import shutil
-import locale
-import json
-import requests
-import random
+import urllib.request
 import math
+
+# MySQL
+import pymysql
 
 # Import settings from settings.py file
 import settings
 
-ver = "0.3.1"
-
-# Set locale
-locale.setlocale(locale.LC_ALL, 'en_US.utf8')
+ver = "0.4.0"
 
 if len(sys.argv) == 3:
     sample_size = None
@@ -34,28 +30,53 @@ else:
     sys.exit(1)
 
 
-############################################
+###################
 def main():
-    r = requests.post('{}/api/folders/{}'.format(settings.api_url, folder_id))
-    if r.status_code != 200:
-        # Something went wrong
-        query_results = r.text.encode('utf-8')
-        print("API Returned Error: {}".format(query_results))
+    # Connect to db
+    try:
+        conn = pymysql.connect(host=settings.host,
+                               user=settings.user,
+                               passwd=settings.password,
+                               database=settings.database,
+                               port=settings.port,
+                               charset='utf8mb4',
+                               cursorclass=pymysql.cursors.DictCursor,
+                               autocommit=True)
+        cur = conn.cursor()
+    except pymysql.Error as e:
+        print('System error: {}'.format(e))
         sys.exit(1)
-    folder_info = json.loads(r.text.encode('utf-8'))
+
     if sample_size is None:
-        for file in folder_info['files']:
-            print('file: {}'.format(file['file_name']))
-            shutil.copy("{}/folder{}/{}.jpg".format(settings.jpgs_folder, folder_id, file['file_id']),
-                        "{}/{}.jpg".format(export_to, file['file_name']))
+        query = ("SELECT COALESCE(preview_image, concat('{}', '/preview_image/', file_id)) as image, file_name "
+                 "  FROM files WHERE folder_id = %(folder_id)s".format(settings.api_url))
     else:
-        files_sample = math.ceil(len(folder_info['files']) * (float(sample_size) / 100.0))
-        files = random.sample(folder_info['files'], files_sample)
-        for file in files:
-            print('file: {}'.format(file['file_name']))
-            shutil.copy("{}/folder{}/{}.jpg".format(settings.jpgs_folder, folder_id, file['file_id']),
-                        "{}/{}.jpg".format(export_to, file['file_name']))
-    return
+        query = ("SELECT count(*) as no_files FROM files WHERE folder_id = %(folder_id)s")
+        cur.execute(query, {'folder_id': folder_id})
+        no_files = cur.fetchall()
+        query = ("SELECT COALESCE(preview_image, concat('{}', '/preview_image/', file_id)) as image, file_name "
+                 "  FROM files WHERE folder_id = %(folder_id)s ORDER BY RAND() LIMIT {}".format(
+                    settings.api_url,
+                          math.ceil(no_files[0]['no_files'] * (float(sample_size) / 100.0))))
+    try:
+        cur.execute(query , {'folder_id': folder_id})
+    except Exception as error:
+        print("Error: {}".format(error))
+    files = cur.fetchall()
+    i = 1
+    i_total = len(files)
+    for file in files:
+        try:
+            print("Downloading {} ({}/{})...".format(file['image'], i, i_total))
+            save_file = "{}/{}.jpg".format(export_to, file['file_name'])
+            urllib.request.urlretrieve(file['image'], filename=save_file)
+            i += 1
+        except urllib.error.URLError:
+            print("File download error: {}".format(save_file))
+        print("File downloaded: {}".format(file['file_name']))
+
+    cur.close()
+    conn.close()
 
 
 ############################################
@@ -63,5 +84,6 @@ def main():
 ############################################
 if __name__ == "__main__":
     main()
+
 
 sys.exit(0)

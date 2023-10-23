@@ -186,9 +186,6 @@ if no_files_ready[0]['no_files'] > 0 and no_files_pending[0]['no_files'] == 0:
         print("Error: {}".format(error))
 
 
-
-
-
 cur.close()
 conn.close()
 
