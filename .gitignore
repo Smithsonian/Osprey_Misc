@@ -164,3 +164,4 @@ settings_db.*
 
 edan.py
 *.jpg
+*.code-workspace

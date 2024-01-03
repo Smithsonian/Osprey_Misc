@@ -315,6 +315,7 @@ CREATE TABLE files_links (
     file_id 		INT,
     link_name       VARCHAR(254),
     link_url        VARCHAR(254),
+    link_aria       VARCHAR(254),
     link_notes      VARCHAR(254),
     updated_at      timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT flinks_files FOREIGN KEY (file_id) REFERENCES files(file_id) ON UPDATE CASCADE ON DELETE CASCADE
@@ -572,3 +573,23 @@ CREATE INDEX jpc_massdigi_tabid_idx ON jpc_massdigi_ids (table_id) USING btree;
 CREATE INDEX jpc_massdigi_idrel_val_idx ON jpc_massdigi_ids (id_relationship) USING btree;
 CREATE INDEX jpc_massdigi_id1_val_idx ON jpc_massdigi_ids (id1_value) USING btree;
 CREATE INDEX jpc_massdigi_id2_val_idx ON jpc_massdigi_ids (id2_value) USING btree;
+
+
+
+-- Folder postprocessing
+--  table to keep track of cleanup of folders and moving the 
+--  images links to IDS
+
+CREATE TABLE `folders_cleanup` (
+  `folder_id` int NOT NULL,
+  `project_id` int NOT NULL,
+  `project_folder` varchar(254) NOT NULL,
+  `linked_to_ids` BOOLEAN DEFAULT 0,
+  `osprey_prev_deleted` BOOLEAN DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`folder_id`),
+  KEY `folders_fid_idx` (`folder_id`) USING BTREE,
+  KEY `folders_pid_idx` (`project_id`) USING BTREE,
+  CONSTRAINT `fk_foldclean` FOREIGN KEY (`folder_id`) REFERENCES `folders` (`folder_id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
