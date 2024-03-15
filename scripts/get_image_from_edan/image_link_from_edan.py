@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import psycopg2
-import psycopg2.extras
+
+import pymysql
 import settings
 import sys
 import edan
 import requests
-
 
 if len(sys.argv) == 1:
     print("folder_id missing")
@@ -21,18 +20,21 @@ else:
 
 
 try:
-    conn = psycopg2.connect(host=settings.host, database=settings.database, user=settings.user,
-                            password=settings.password)
-except psycopg2.Error as e:
-    print('System error')
+    conn = pymysql.connect(host=settings.host,
+                    user=settings.user,
+                    passwd=settings.password,
+                    database=settings.database,
+                    port=settings.port,
+                    charset='utf8mb4',
+                    cursorclass=pymysql.cursors.DictCursor,
+                    autocommit=True)
+    cur = conn.cursor()
+except pymysql.Error as e:
+    print(e)
     sys.exit(1)
-
-cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-conn.autocommit = True
 
 
 data = cur.execute("select file_id, file_name from files where folder_id = %(folder_id)s", {'folder_id': folder_id})
-
 rows = cur.fetchall()
 
 print("Number of rows: {}".format(len(rows)))
@@ -44,6 +46,7 @@ for row in rows:
     results = edan.searchEDAN("{} {}".format(row['file_name'], keywords), settings.AppID, settings.AppKey)
     if results['rowCount'] == 1:
         try:
+            uan = results['rows'][0]['content']['uan']
             media = results['rows'][0]['content']['descriptiveNonRepeating']['online_media']['media'][0]['idsId']
             if media[:4] == 'ark:':
                 d = cur.execute(
