@@ -83,7 +83,7 @@ select f.file_name,
 	DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date,
 	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
 from files f, qc_folders q, folders fol
-where f.folder_id in (select folder_id from folders where project_id = 186) and 
+where f.folder_id in (select folder_id from folders where project_id = 183) and 
 	f.folder_id = fol.folder_id and 
 	fol.folder_id = q.folder_id
 	)
@@ -101,7 +101,7 @@ select f.file_name,
 	DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date,
 	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
 from files f, qc_folders q, folders fol
-where f.folder_id in (select folder_id from folders where project_id = 186) and 
+where f.folder_id in (select folder_id from folders where project_id = 183) and 
 	f.folder_id = fol.folder_id and 
 	fol.folder_id = q.folder_id
 	)
@@ -126,7 +126,7 @@ select f.file_name,
 	DATE_FORMAT(d.to_dams_ingest_dt, \"%Y-%m-%d\") dams_date,
 	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
 from files f, qc_folders q, folders fol, dams_cdis_file_status_view_dpo d
-where f.folder_id in (select folder_id from folders where project_id = 186) and 
+where f.folder_id in (select folder_id from folders where project_id = 183) and 
 	f.folder_id = fol.folder_id and 
 	fol.folder_id = q.folder_id and 
 	f.dams_uan = d.dams_uan 
@@ -145,7 +145,7 @@ select f.file_name,
 	DATE_FORMAT(d.to_dams_ingest_dt, \"%Y-%m-%d\") dams_date,
 	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
 from files f, qc_folders q, folders fol, dams_cdis_file_status_view_dpo d
-where f.folder_id in (select folder_id from folders where project_id = 186) and 
+where f.folder_id in (select folder_id from folders where project_id = 183) and 
 	f.folder_id = fol.folder_id and 
 	fol.folder_id = q.folder_id and 
 	f.dams_uan = d.dams_uan 
