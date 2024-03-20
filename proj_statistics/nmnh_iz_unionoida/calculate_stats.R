@@ -20,10 +20,10 @@ n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = 'c2b
 n <- dbExecute(con, "
 INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
-    select f.file_name, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 183) and 
+    select SUBSTRING_INDEX(f.file_name, '_',4) as file_name, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 183) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 )
-select 'c2bc3c4d-f1b5-4661-866c-341a6770b109', jpc.creation_date, count(*) from jpc_files jpc group by jpc.creation_date)")
+select 'c2bc3c4d-f1b5-4661-866c-341a6770b109', jpc.creation_date, count(distinct file_name) from jpc_files jpc group by jpc.creation_date)")
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = 'c2bc3c4d-f1b5-4661-866c-341a6770b109'"))
 
 # stat
