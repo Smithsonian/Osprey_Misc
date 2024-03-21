@@ -12,44 +12,53 @@ n <- dbExecute(con, "set time_zone = '-04:00';")
 
 # JPC
 # # ## % Digitized
-# refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
-# digitized_refids <- dbGetQuery(con, "select count(distinct id1_value) as val from jpc_massdigi_ids where id_relationship ='refid_hmo'")
-# 
-# percentage <- round((digitized_refids['val']/refids['val']) * 100, 3)
-# 
-# n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '7c9ec798-d31b-4c73-b937-c3a9b1ad2b70'")
-# n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) (SELECT '7c9ec798-d31b-4c73-b937-c3a9b1ad2b70', '", format(Sys.time(), "%Y-%m-%d") ,"', '", percentage, "')"))
-# 
-# n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '7c9ec798-d31b-4c73-b937-c3a9b1ad2b70'"))
+# fd1f7058-b63b-46a0-b7ce-577b42aa217e
+refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
+digitized_refids <- dbGetQuery(con, "select count(distinct id1_value) as val from jpc_massdigi_ids where id_relationship ='refid_hmo'")
 
+percentage <- round((digitized_refids['val']/refids['val']) * 100, 3)
 
+n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = 'fd1f7058-b63b-46a0-b7ce-577b42aa217e'")
+n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) (SELECT 'fd1f7058-b63b-46a0-b7ce-577b42aa217e', '", format(Sys.time(), "%Y-%m-%d") ,"', '", percentage, "')"))
 
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = 'fd1f7058-b63b-46a0-b7ce-577b42aa217e'"))
 
-# Images by day by vendor ----
-# 131bcf0b-1e86-4810-bc80-e4828087af54
-n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '131bcf0b-1e86-4810-bc80-e4828087af54'")
-n <- dbExecute(con, "
-INSERT INTO projects_detail_statistics (step_id, date, step_value) 
-(with jpc_files as (
-    select f.file_name, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 186) and 
-    fe.tag='CreateDate' and f.file_id = fe.file_id
-)
-select '131bcf0b-1e86-4810-bc80-e4828087af54', jpc.creation_date, count(*) from jpc_files jpc group by jpc.creation_date)")
-n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '131bcf0b-1e86-4810-bc80-e4828087af54'"))
-
-# stat
-# 7140864f-a218-4af1-b8c3-e69df721c1a0
-n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '7140864f-a218-4af1-b8c3-e69df721c1a0'")
+# Area Figure
+# 4cfbb0de-946b-4517-99e7-f4a14ecf9458
+refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
+n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '4cfbb0de-946b-4517-99e7-f4a14ecf9458'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
-    select f.file_name, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 186) and 
+   with data as (
+  select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date 
+  from files f, files_exif fe where f.folder_id in 
+  (select folder_id from folders where project_id = 186) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 ),
-vendor as (
-select jpc.creation_date, count(*) as no_images from jpc_files jpc group by jpc.creation_date
+data2 as (
+select refid, min(creation_date) as creation_date from data
+group by refid)
+, data3 as (
+select
+  creation_date,
+  count(refid) over (order by creation_date) as cumulative_sum
+from data2
 )
-select '7140864f-a218-4af1-b8c3-e69df721c1a0', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(no_images) from vendor)"))
-n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '7140864f-a218-4af1-b8c3-e69df721c1a0'"))
+select creation_date, cumulative_sum from data3 group by creation_date, cumulative_sum
+
+)
+select '4cfbb0de-946b-4517-99e7-f4a14ecf9458', jpc.creation_date, 
+               cumulative_sum
+               from jpc_files jpc)"))
+
+
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics SET step_value = (step_value/",
+        as.integer(refids['val'][1,1])
+        ,") * 100 WHERE step_id = '4cfbb0de-946b-4517-99e7-f4a14ecf9458'"))
+
+
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '4cfbb0de-946b-4517-99e7-f4a14ecf9458'"))
+
 
 
 
