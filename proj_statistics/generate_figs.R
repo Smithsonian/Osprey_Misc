@@ -39,12 +39,20 @@ for (i in 1:dim(steps)[1]){
         date_by <- 2
     }
     
+    print(steps[i,]['step'])
+    if (steps[i,]['step'] == 'archive_records'){
+        date_breaks <- (date_breaks = "1 month")
+        date_lab <- "%Y-%m"
+    }else{
+        date_breaks <- seq(min_date, max_date, by = date_by)
+        date_lab <- "%Y-%m-%d"
+    }
     
     filename <- paste0(export_to, "/", steps[i,]['project_id'], "_", steps[i,]['step'],".png")
     p <-
         ggplot(data, aes(y = step_value, x = date)) +
         geom_bar(stat='identity', fill="#009CDE") +
-        scale_x_date(date_labels = "%Y-%m-%d", breaks = seq(min_date, max_date, by = date_by)) +
+        scale_x_date(date_labels = date_lab, breaks = date_breaks) +
         scale_y_continuous() +
         labs(x = "Date", y = steps[i,]['step_units']) +
         theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
