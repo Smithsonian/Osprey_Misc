@@ -11,7 +11,43 @@ con <- dbConnect(RMariaDB::MariaDB(), dbname = database, username = user, passwo
 n <- dbExecute(con, "set time_zone = '-04:00';")
 
 # JPC
-# # ## % Digitized
+## Creation of records in ASpace
+# 0bc65ec3-7a10-4e43-bada-e5b1dff01532
+n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '0bc65ec3-7a10-4e43-bada-e5b1dff01532'")
+n <- dbExecute(con, "
+INSERT INTO projects_detail_statistics (step_id, date, step_value)
+(
+with data as (
+    select concat(DATE_FORMAT(creation_date, \"%Y-%m\"), '-01') as creation_date, count(*) as no_records from jpc_aspace_data group by concat(DATE_FORMAT(creation_date, \"%Y-%m\"), '-01'))
+select '0bc65ec3-7a10-4e43-bada-e5b1dff01532', creation_date, 
+no_records from data
+               )")
+
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '0bc65ec3-7a10-4e43-bada-e5b1dff01532'"))
+
+# stat
+# 274a5332-791b-463d-a379-c934e6761d58
+n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '274a5332-791b-463d-a379-c934e6761d58'")
+n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value)
+(
+with data as (select concat(DATE_FORMAT(creation_date, \"%Y-%m\"), '-01') as creation_date, count(*) as no_records from jpc_aspace_data group by concat(DATE_FORMAT(creation_date, \"%Y-%m\"), '-01'))
+select '274a5332-791b-463d-a379-c934e6761d58', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(no_records) from data)"))
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '274a5332-791b-463d-a379-c934e6761d58'"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# % Digitized
 # fd1f7058-b63b-46a0-b7ce-577b42aa217e
 refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
 digitized_refids <- dbGetQuery(con, "select count(distinct id1_value) as val from jpc_massdigi_ids where id_relationship ='refid_hmo'")
@@ -86,8 +122,22 @@ n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, dat
 vendor as (
 select jpc.creation_date, count(distinct refid) as no_refids from jpc_files jpc group by jpc.creation_date
 )
-select '67c16c2c-d990-46b8-9cb1-2eff57ece03d', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(no_refids) from vendor)"))
+select '67c16c2c-d990-46b8-9cb1-2eff57ece03d', from_unixtime( avg(unix_timestamp(creation_date))), avg(no_refids) from vendor)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '67c16c2c-d990-46b8-9cb1-2eff57ece03d'"))
+
+# timeline
+# df879b76-f91c-4a4e-b280-1a2bf7c29689
+n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = 'df879b76-f91c-4a4e-b280-1a2bf7c29689'")
+n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
+(with jpc_files as (
+    select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 186) and 
+    fe.tag='CreateDate' and f.file_id = fe.file_id
+),
+vendor as (
+select jpc.creation_date, count(distinct refid) as no_refids from jpc_files jpc group by jpc.creation_date
+)
+select 'df879b76-f91c-4a4e-b280-1a2bf7c29689', from_unixtime( avg(unix_timestamp(creation_date))), avg(no_refids) from vendor)"))
+n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = 'df879b76-f91c-4a4e-b280-1a2bf7c29689'"))
 
 
 
@@ -118,7 +168,7 @@ with jpc_files as (
 	select f.file_name, DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as digi_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 186) and 
 	fe.tag='CreateDate' and f.file_id = fe.file_id
 	)
-select 'd85447d5-89ac-4814-9083-c840b614a4a3', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(DATEDIFF(osprey_date, digi_date)) from jpc_files)"))
+select 'd85447d5-89ac-4814-9083-c840b614a4a3', from_unixtime( avg(unix_timestamp(osprey_date))), avg(DATEDIFF(osprey_date, digi_date)) from jpc_files)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = 'd85447d5-89ac-4814-9083-c840b614a4a3'"))
 
 
@@ -155,7 +205,7 @@ where f.folder_id in (select folder_id from folders where project_id = 186) and
 	f.folder_id = fol.folder_id and 
 	fol.folder_id = q.folder_id
 	)
-	select '55404bf2-dc95-4a6d-957a-03ac59b3dc9f', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(DATEDIFF(qc_date, osprey_date))
+	select '55404bf2-dc95-4a6d-957a-03ac59b3dc9f', from_unixtime( avg(unix_timestamp(qc_date))), avg(DATEDIFF(qc_date, osprey_date))
 	from fdates f 
 	)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '55404bf2-dc95-4a6d-957a-03ac59b3dc9f'"))
@@ -200,7 +250,7 @@ where f.folder_id in (select folder_id from folders where project_id = 186) and
 	fol.folder_id = q.folder_id and 
 	f.dams_uan = d.dams_uan 
 	)
-	select 'd01e5ebc-53df-4fcf-9a08-5cc91f07212b', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(DATEDIFF(dams_date, qc_date))
+	select 'd01e5ebc-53df-4fcf-9a08-5cc91f07212b', from_unixtime( avg(unix_timestamp(dams_date))), avg(DATEDIFF(dams_date, qc_date))
 	from fdates f
 	)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = 'd01e5ebc-53df-4fcf-9a08-5cc91f07212b'"))
@@ -246,7 +296,7 @@ where f.folder_id in (select folder_id from folders where project_id = 186) and
 	fol.folder_id = q.folder_id and 
 	f.dams_uan = d.dams_uan 
 	)
-	select '2f0a4c97-6d2b-47b1-a5ae-d2541515da43', '", format(Sys.time(), "%Y-%m-%d") ,"', avg(DATEDIFF(getty_date, dams_date))
+	select '2f0a4c97-6d2b-47b1-a5ae-d2541515da43', from_unixtime( avg(unix_timestamp(getty_date))), avg(DATEDIFF(getty_date, dams_date))
 	from fdates f
 	)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '2f0a4c97-6d2b-47b1-a5ae-d2541515da43'"))
