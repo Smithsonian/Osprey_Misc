@@ -46,6 +46,21 @@ except pymysql.Error as e:
 ############################################
 # Run
 ############################################
+
+# Set as on the way to dams
+try:
+    cur.execute("""
+                 UPDATE
+                    folders
+                    SET
+                    delivered_to_dams = 1
+                    WHERE
+                    folder_id = %(folder_id)s
+            """, {'folder_id': folder_id})
+except Exception as error:
+    print("Error: {}".format(error))
+
+
 try:
     cur.execute("""
              DELETE FROM folders_badges WHERE folder_id = %(folder_id)s AND badge_type = 'dams_status'
