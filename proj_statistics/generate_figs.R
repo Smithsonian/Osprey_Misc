@@ -31,7 +31,9 @@ for (i in 1:dim(steps)[1]){
     min_date <- min(data$date)
     max_date <- max(data$date)
     
-    if ((max_date - min_date) > 42){
+    if ((max_date - min_date) >= 90){
+        date_by <- 28
+    }else if ((max_date - min_date) > 42 && (max_date - min_date) < 90){
         date_by <- 14
     }else if ((max_date - min_date) > 20 && (max_date - min_date) <= 42){
         date_by <- 7
@@ -55,7 +57,7 @@ for (i in 1:dim(steps)[1]){
         scale_x_date(date_labels = date_lab, breaks = date_breaks) +
         scale_y_continuous() +
         labs(x = "Date", y = steps[i,]['step_units']) +
-        theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+        theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     png(filename, width = 1600, height = 580)
     print(p)
     dev.off()
@@ -70,7 +72,7 @@ for (i in 1:dim(steps)[1]){
     #     scale_x_date(date_labels = "%Y-%m-%d", breaks = seq(min_date, max_date, by = date_by)) +
     #     scale_y_continuous() +
     #     labs(x = "Date", y = steps[i,]['step_units']) +
-    #     theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+    #     theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     # png(filename, width = 1600, height = 580)
     # print(p)
     # dev.off()
@@ -104,7 +106,7 @@ for (i in 1:dim(steps)[1]){
     #     scale_x_date(date_labels = "%Y-%m-%d") +
     #     scale_y_continuous() +
     #     labs(x = "Date", y = steps[i,]['step_units']) +
-    #     theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+    #     theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     # png(filename, width = 1600, height = 580)
     # print(p)
     # dev.off()
@@ -129,7 +131,7 @@ for (i in 1:dim(steps)[1]){
     #     scale_x_date(date_labels = "%Y-%m-%d", breaks = seq(min_date, max_date, by = date_by)) +
     #     scale_y_continuous() +
     #     labs(x = "Date", y = steps[i,]['step_units']) +
-    #     theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+    #     theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     # png(filename, width = 1600, height = 580)
     # print(p)
     # dev.off()
@@ -137,7 +139,9 @@ for (i in 1:dim(steps)[1]){
     min_date <- min(data$date)
     max_date <- max(data$date)
     
-    if ((max_date - min_date) > 42){
+    if ((max_date - min_date) >= 90){
+        date_by <- 28
+    }else if ((max_date - min_date) > 42 && (max_date - min_date) < 90){
         date_by <- 14
     }else if ((max_date - min_date) > 20 && (max_date - min_date) <= 42){
         date_by <- 7
@@ -153,7 +157,7 @@ for (i in 1:dim(steps)[1]){
         scale_x_date(date_labels = "%Y-%m-%d", breaks = seq(min_date, max_date, by = date_by)) +
         scale_y_continuous() +
         labs(x = "Date", y = steps[i,]['step_units']) +
-        theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+        theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     png(filename, width = 1600, height = 580)
     print(p)
     dev.off()
@@ -186,7 +190,9 @@ for (i in 1:dim(steps)[1]){
     min_date <- min(data$date)
     max_date <- max(data$date)
     
-    if ((max_date - min_date) > 42){
+    if ((max_date - min_date) >= 90){
+        date_by <- 28
+    }else if ((max_date - min_date) > 42 && (max_date - min_date) < 90){
         date_by <- 14
     }else if ((max_date - min_date) > 20 && (max_date - min_date) <= 42){
         date_by <- 7
@@ -205,7 +211,7 @@ for (i in 1:dim(steps)[1]){
         scale_x_date(date_labels = "%Y-%m-%d", breaks = seq(min_date, max_date, by = date_by)) +
         scale_y_continuous() +
         labs(x = "Date", y = steps[i,]['step_units']) +
-        theme(axis.text = element_text(size = 14), axis.title=element_text(size=18,face="bold"))
+        theme(axis.text = element_text(size = 18), axis.title=element_text(size=22,face="bold"))
     
     png(filename, width = 1600, height = 580)
     print(p)

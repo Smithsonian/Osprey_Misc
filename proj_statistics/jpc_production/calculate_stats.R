@@ -49,10 +49,16 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 
 # % Digitized
 # d35e8e63-f271-49cd-a3c8-5487a3b9369c
-refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
-digitized_refids <- dbGetQuery(con, "select count(distinct id1_value) as val from jpc_massdigi_ids where id_relationship ='refid_hmo'")
+# refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
+# digitized_refids <- dbGetQuery(con, "select count(distinct id1_value) as val from jpc_massdigi_ids where id_relationship ='refid_hmo'")
 
-percentage <- round((digitized_refids['val']/refids['val']) * 100, 3)
+refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
+digitized_refids <- dbGetQuery(con, "select count(DISTINCT SUBSTRING_INDEX(f.file_name, '_', 2)) as val
+  from files f where f.folder_id in 
+  (select folder_id from folders where project_id = 201)")
+
+
+percentage <- round((digitized_refids['val']/70275) * 100, 3)
 
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = 'd35e8e63-f271-49cd-a3c8-5487a3b9369c'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) (SELECT 'd35e8e63-f271-49cd-a3c8-5487a3b9369c', '", format(Sys.time(), "%Y-%m-%d") ,"', '", percentage, "')"))
@@ -63,12 +69,35 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 # 8ed2cb9b-0687-4c21-bac6-d7681b03fa62
 refids <- dbGetQuery(con, "select count(distinct refid) as val from jpc_aspace_data")
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '8ed2cb9b-0687-4c21-bac6-d7681b03fa62'")
+# n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
+# (with jpc_files as (
+#    with data as (
+#   select SUBSTRING_INDEX(f.file_name, '_', 2) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date 
+#   from files f, files_exif fe where f.folder_id in 
+#   (select folder_id from folders where (project_id = 201 or project_id = 186)) and 
+#     fe.tag='CreateDate' and f.file_id = fe.file_id
+# ),
+# data2 as (
+# select refid, min(creation_date) as creation_date from data
+# group by refid)
+# , data3 as (
+# select
+#   creation_date,
+#   count(refid) over (order by creation_date) as cumulative_sum
+# from data2
+# )
+# select creation_date, cumulative_sum from data3 group by creation_date, cumulative_sum
+# 
+# )
+# select '8ed2cb9b-0687-4c21-bac6-d7681b03fa62', jpc.creation_date, 
+#                cumulative_sum
+#                from jpc_files jpc)"))
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
    with data as (
   select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date 
   from files f, files_exif fe where f.folder_id in 
-  (select folder_id from folders where (project_id = 201 or project_id = 186)) and 
+  (select folder_id from folders where project_id = 201) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 ),
 data2 as (
@@ -87,7 +116,6 @@ select '8ed2cb9b-0687-4c21-bac6-d7681b03fa62', jpc.creation_date,
                cumulative_sum
                from jpc_files jpc)"))
 
-
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics SET step_value = (step_value/",
         as.integer(refids['val'][1,1])
         ,") * 100 WHERE step_id = '8ed2cb9b-0687-4c21-bac6-d7681b03fa62'"))
@@ -105,7 +133,7 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = 'eeb367ee-7731-40cd-bd7d-887674f9c9b6'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
-    select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    select SUBSTRING_INDEX(f.file_name, '_', 2) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 )
 select 'eeb367ee-7731-40cd-bd7d-887674f9c9b6', jpc.creation_date, count(distinct refid) as no_refids from jpc_files jpc group by jpc.creation_date)"))
@@ -116,7 +144,7 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '55b6279d-c2d2-4561-bc42-9f42c441d783'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
-    select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    select SUBSTRING_INDEX(f.file_name, '_', 2) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 ),
 vendor as (
@@ -130,7 +158,7 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '62120a44-dd0b-462b-9c60-1bfa8b170854'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
 (with jpc_files as (
-    select SUBSTRING_INDEX(f.file_name, '_', 1) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    select SUBSTRING_INDEX(f.file_name, '_', 2) as refid, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as creation_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
     fe.tag='CreateDate' and f.file_id = fe.file_id
 ),
 vendor as (
@@ -149,12 +177,12 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 # 784fe57a-439c-491d-93eb-0619df01d4f6
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '784fe57a-439c-491d-93eb-0619df01d4f6'")
 n <- dbExecute(con, "INSERT INTO projects_detail_statistics (file_name, step_id, date, step_value) 
-(
-with jpc_files as (
-	select f.file_name, DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as digi_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
-	fe.tag='CreateDate' and f.file_id = fe.file_id
-	)
-select file_name,  '784fe57a-439c-491d-93eb-0619df01d4f6', digi_date, DATEDIFF(osprey_date, digi_date)  from jpc_files 
+    (
+    with jpc_files as (
+    	select f.file_name, DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as digi_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    	fe.tag='CreateDate' and f.file_id = fe.file_id
+    	)
+    select file_name,  '784fe57a-439c-491d-93eb-0619df01d4f6', digi_date, DATEDIFF(osprey_date, digi_date)  from jpc_files 
     )")
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '784fe57a-439c-491d-93eb-0619df01d4f6'"))
                
@@ -163,12 +191,12 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 # 4e1da114-59c7-49dc-a331-86d45a1b7ea8
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '4e1da114-59c7-49dc-a331-86d45a1b7ea8'")
 n <- dbExecute(con, paste0("INSERT INTO projects_detail_statistics (step_id, date, step_value) 
-(
-with jpc_files as (
-	select f.file_name, DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as digi_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
-	fe.tag='CreateDate' and f.file_id = fe.file_id
-	)
-select '4e1da114-59c7-49dc-a331-86d45a1b7ea8', from_unixtime( avg(unix_timestamp(osprey_date))), avg(DATEDIFF(osprey_date, digi_date)) from jpc_files)"))
+    (
+    with jpc_files as (
+    	select f.file_name, DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date, DATE_FORMAT(fe.value, \"%Y-%m-%d\") as digi_date from files f, files_exif fe where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    	fe.tag='CreateDate' and f.file_id = fe.file_id
+    	)
+    select '4e1da114-59c7-49dc-a331-86d45a1b7ea8', from_unixtime( avg(unix_timestamp(osprey_date))), avg(DATEDIFF(osprey_date, digi_date)) from jpc_files)"))
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '4e1da114-59c7-49dc-a331-86d45a1b7ea8'"))
 
 
@@ -178,17 +206,17 @@ n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_upd
 # 76d1a3a3-c8b5-4854-a187-f1e49e061205
 n <- dbExecute(con, "DELETE FROM projects_detail_statistics WHERE step_id = '76d1a3a3-c8b5-4854-a187-f1e49e061205'")
 n <- dbExecute(con, "INSERT INTO projects_detail_statistics (file_name, step_id, date, step_value) 
-(with fdates as (
-select f.file_name, 
-	DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date,
-	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
-from files f, qc_folders q, folders fol
-where f.folder_id in (select folder_id from folders where project_id = 201) and 
-	f.folder_id = fol.folder_id and 
-	fol.folder_id = q.folder_id
-	)
-	select file_name, '76d1a3a3-c8b5-4854-a187-f1e49e061205', osprey_date, DATEDIFF(qc_date, osprey_date)
-	from fdates f 
+    (with fdates as (
+    select f.file_name, 
+    	DATE_FORMAT(f.created_at, \"%Y-%m-%d\") osprey_date,
+    	DATE_FORMAT(q.updated_at, \"%Y-%m-%d\") qc_date
+    from files f, qc_folders q, folders fol
+    where f.folder_id in (select folder_id from folders where project_id = 201) and 
+    	f.folder_id = fol.folder_id and 
+    	fol.folder_id = q.folder_id
+    	)
+    	select file_name, '76d1a3a3-c8b5-4854-a187-f1e49e061205', osprey_date, DATEDIFF(qc_date, osprey_date)
+    	from fdates f 
 	)")
 n <- dbExecute(con, paste0("UPDATE projects_detail_statistics_steps SET step_updated_on = CURRENT_TIME WHERE step_id = '76d1a3a3-c8b5-4854-a187-f1e49e061205'"))
                
