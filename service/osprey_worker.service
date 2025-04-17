@@ -1,0 +1,13 @@
+# Service to run Osprey Worker using systemctl
+
+[Unit]
+Description=Osprey Worker - [PROJECT]
+After=network.target remote-fs.target nss-lookup.target httpd.service
+
+
+[Service]
+Type=exec
+ExecStart=/server/[project].sh
+ExecReload=kill -HUP $MAINPID
+
+[Install]

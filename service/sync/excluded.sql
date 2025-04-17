@@ -1,0 +1,1 @@
+select concat('- ', project_folder) as pf from folders where project_id = [PROJECTID] and delivered_to_dams != 9;
