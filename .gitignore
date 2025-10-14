@@ -168,3 +168,4 @@ edan.py
 .Rproj.user
 
 *.Rproj
+scripts/auto_check_DAMS/settings_dams.py

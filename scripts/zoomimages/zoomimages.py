@@ -38,7 +38,7 @@ def generate_pyramids(filename, jpg_path):
         tile_size=256,
         tile_overlap=2,
         tile_format="jpg",
-        image_quality=0.8,
+        image_quality=1.0,
         resize_filter="bicubic",
     )
     # Create Deep Zoom image pyramid from source

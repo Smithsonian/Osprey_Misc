@@ -18,7 +18,7 @@ python3 autocheck_dams.py "$PROJECT"
 deactivate
 
 
-cd /server_path/
+cd /server_path/"$PROJECT"
 
 # Set done folders
 echo "Getting done folders..."
