@@ -1,0 +1,51 @@
+# file path location
+$folder = "C:\Users\dipietroc\OneDrive - Smithsonian Institution\Documents - OCIO-Collex Digi Program\CD Team - Records Digitization\Transcription\Projects\nmnh\2025EntoTrans\Feedback_for_Alembo"
+
+# original file name
+$inputFile = Join-Path $folder "Batch001_002Feedback20260914.txt"
+# transformed file name
+$outputFile = Join-Path $folder "Batch001_002Feedback20260914Escape.txt"
+
+$lines = Get-Content -Path $inputFile -Encoding UTF8
+
+$fixedLines = foreach ($line in $lines) {
+
+    $chars = $line.ToCharArray()
+    $result = New-Object System.Text.StringBuilder
+    $insideQuotedField = $false
+
+    for ($i = 0; $i -lt $chars.Length; $i++) {
+
+        $char = $chars[$i]
+
+        if ($char -eq '"') {
+
+            $next = if ($i -lt $chars.Length - 1) { $chars[$i + 1] } else { $null }
+
+            if (-not $insideQuotedField) {
+                [void]$result.Append('"')
+                $insideQuotedField = $true
+            }
+            else {
+                $isFieldEnd =
+                    ($i -eq $chars.Length - 1) -or
+                    ($next -eq ',')
+
+                if ($isFieldEnd) {
+                    [void]$result.Append('"')
+                    $insideQuotedField = $false
+                }
+                else {
+                    [void]$result.Append('""')
+                }
+            }
+        }
+        else {
+            [void]$result.Append($char)
+        }
+    }
+
+    $result.ToString()
+}
+
+$fixedLines | Set-Content -Path $outputFile -Encoding UTF8
