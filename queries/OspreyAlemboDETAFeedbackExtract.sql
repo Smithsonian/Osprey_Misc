@@ -1,10 +1,11 @@
+/*This script replaces " with "" for the purposes of the the csv extract and insert into the Alembo DETA system*/
 SET @folders = CONCAT(
 /*ADD FOLDERS TO PULL FOR ALEMBO BELOW*/
-    QUOTE('USNMENT-MDPP-Pol-0324_20260318_10kfh-sm'), ',',
-    QUOTE('USNMENT-MDPP-Pol-0538_20260408_10kfh-sm'), ',',
-    QUOTE('USNMENT-MDPP-Pol-0544_20260409_10kfh-sm')
-);
+QUOTE('USNMENT-MDPP-Pol-0538_20260408_10kfh-sm'), ',',
+QUOTE('USNMENT-MDPP-Pol-0149_20251120_10kfh-sm')
 /*ADD FOLDERS TO PULL FOR ALEMBO ABOVE*/
+);
+
 SET SESSION group_concat_max_len = 1000000;
 
 
@@ -13,7 +14,11 @@ SET @cols_sql = CONCAT(
         CONCAT(
             ''MAX(CASE WHEN transcription_fields.field_name = '',
             QUOTE(field_name),
-            '' THEN transcription_files_text.transcription_text END) AS `'',
+            '' THEN REPLACE(
+                transcription_files_text.transcription_text,
+                CHAR(34),
+                CONCAT(CHAR(34), CHAR(34))
+            ) END) AS `'',
             REPLACE(field_name, ''`'', ''``''),
             ''`''
         )
@@ -72,54 +77,86 @@ DEALLOCATE PREPARE cols_stmt;
 SET @sql = CONCAT(
     'SELECT
 
-        alembo_ids.id AS `ID`,
-
-        transcription_folders.folder AS `Client Batch`,
-
-        alembo_ids.deta_batch AS `DETA Batch`,
+        REPLACE(
+            alembo_ids.id,
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
+        ) AS `ID`,
 
         REPLACE(
-            transcription_files.file_name,
-            ''_a_label'',
-            ''''
+            transcription_folders.folder,
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
+        ) AS `Client Batch`,
+
+        REPLACE(
+            alembo_ids.deta_batch,
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
+        ) AS `DETA Batch`,
+
+        REPLACE(
+            REPLACE(
+                transcription_files.file_name,
+                ''_a_label'',
+                ''''
+            ),
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
         ) AS `Image`,
 
         ',
         @cols,
         ',
 
-        TRIM(
-            SUBSTRING_INDEX(
-                transcription_qc.qc_notes,
-                ''|'',
-                1
-            )
+        REPLACE(
+            TRIM(
+                SUBSTRING_INDEX(
+                    transcription_qc.qc_notes,
+                    ''|'',
+                    1
+                )
+            ),
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
         ) AS `Feedback Type`,
 
-        TRIM(
-            CASE
-                WHEN LOCATE(''|'', transcription_qc.qc_notes) > 0
-                THEN SUBSTRING(
-                    transcription_qc.qc_notes,
-                    LOCATE(''|'', transcription_qc.qc_notes) + 1
-                )
-                ELSE NULL
-            END
+        REPLACE(
+            TRIM(
+                CASE
+                    WHEN LOCATE(''|'', transcription_qc.qc_notes) > 0
+                    THEN SUBSTRING(
+                        transcription_qc.qc_notes,
+                        LOCATE(''|'', transcription_qc.qc_notes) + 1
+                    )
+                    ELSE NULL
+                END
+            ),
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
         ) AS `Feedback`,
 
-        CASE
-            WHEN transcription_qc.qc_results = 3 THEN ''Minor Issue''
-            WHEN transcription_qc.qc_results = 2 THEN ''Major Issue''
-            WHEN transcription_qc.qc_results = 1 THEN ''Critical Issue''
-            ELSE CAST(transcription_qc.qc_results AS CHAR)
-        END AS `Label QC Result`,
+        REPLACE(
+            CASE
+                WHEN transcription_qc.qc_results = 3 THEN ''Minor Issue''
+                WHEN transcription_qc.qc_results = 2 THEN ''Major Issue''
+                WHEN transcription_qc.qc_results = 1 THEN ''Critical Issue''
+                ELSE CAST(transcription_qc.qc_results AS CHAR)
+            END,
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
+        ) AS `Label QC Result`,
 
-        CASE
-            WHEN transcription_qc_folders.qc_status = 9 THEN ''Pending QC Completion''
-            WHEN transcription_qc_folders.qc_status = 1 THEN ''Transcription QC Failed''
-            WHEN transcription_qc_folders.qc_status = 0 THEN ''Transcription QC Passed''
-            ELSE CAST(transcription_qc_folders.qc_status AS CHAR)
-        END AS `Folder QC Status`
+        REPLACE(
+            CASE
+                WHEN transcription_qc_folders.qc_status = 9 THEN ''Pending QC Completion''
+                WHEN transcription_qc_folders.qc_status = 1 THEN ''Transcription QC Failed''
+                WHEN transcription_qc_folders.qc_status = 0 THEN ''Transcription QC Passed''
+                ELSE CAST(transcription_qc_folders.qc_status AS CHAR)
+            END,
+            CHAR(34),
+            CONCAT(CHAR(34), CHAR(34))
+        ) AS `Folder QC Status`
 
     FROM transcription_files
 
