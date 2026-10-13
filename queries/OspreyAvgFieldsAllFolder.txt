@@ -1,0 +1,19 @@
+/* Average of fields for all folders per specimen per folder with min/max fields and specimen count */
+
+SELECT
+    AVG(field_count) AS avg_fields_per_specimen,
+    MIN(field_count) AS min_fields,
+    MAX(field_count) AS max_fields,
+    COUNT(*) AS specimen_count
+FROM (
+    SELECT
+        tft.file_transcription_id,
+        COUNT(*) AS field_count
+    FROM transcription_files_text tft
+    JOIN transcription_files tf
+        ON tft.file_transcription_id = tf.file_transcription_id
+    JOIN transcription_folders folder
+        ON tf.folder_transcription_id = folder.folder_transcription_id
+    WHERE folder.project_id = 250
+    GROUP BY tft.file_transcription_id
+) x;
