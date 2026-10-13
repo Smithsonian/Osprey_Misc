@@ -1,0 +1,444 @@
+/* Average field cost for specimen label transcription for all folders in project */
+
+SET SESSION group_concat_max_len = 1000000;
+
+
+-- ============================================================
+-- 1. BUILD DYNAMIC FIELD COLUMNS
+--
+-- All folders within project 250.
+-- No QC restriction.
+-- ============================================================
+
+SET @cols_sql = CONCAT(
+'
+SELECT GROUP_CONCAT(
+    CONCAT(
+        ''MAX(
+            CASE
+                WHEN transcription_fields.field_id = '',
+        QUOTE(field_id),
+        ''
+                THEN transcription_files_text.transcription_text
+            END
+        ) AS `'',
+        REPLACE(field_name, ''`'', ''``''),
+        ''`''
+    )
+    ORDER BY sort_by
+    SEPARATOR '', ''
+)
+INTO @cols
+
+FROM (
+    SELECT DISTINCT
+        transcription_fields.field_id,
+        transcription_fields.field_name,
+        transcription_fields.sort_by
+
+    FROM transcription_files_text
+
+    JOIN transcription_files
+        ON transcription_files_text.file_transcription_id =
+           transcription_files.file_transcription_id
+
+    JOIN transcription_folders
+        ON transcription_files.folder_transcription_id =
+           transcription_folders.folder_transcription_id
+
+    JOIN transcription_fields
+        ON transcription_files_text.field_id =
+           transcription_fields.field_id
+
+    WHERE transcription_folders.project_id = 250
+
+      AND transcription_fields.field_name IS NOT NULL
+
+      AND transcription_fields.field_id IS NOT NULL
+) AS field_list
+'
+);
+
+PREPARE cols_stmt FROM @cols_sql;
+EXECUTE cols_stmt;
+DEALLOCATE PREPARE cols_stmt;
+
+
+-- ============================================================
+-- 2. BUILD DETAILED QUERY
+--
+-- The specimen population is based on transcription_files_text,
+-- exactly like your reference specimen-count query.
+--
+-- QC is displayed if available, but does NOT restrict records.
+-- ============================================================
+
+SET @sql = CONCAT(
+'
+SELECT
+
+    transcription_files.file_transcription_id AS `Record ID`,
+
+    alembo_ids.id AS `ID`,
+
+    transcription_folders.folder AS `Client Batch`,
+
+    alembo_ids.deta_batch AS `DETA Batch`,
+
+    REPLACE(
+        transcription_files.file_name,
+        ''_a_label'',
+        ''''
+    ) AS `Image`,
+
+    ',
+    @cols,
+    ',
+
+    COALESCE(
+        record_costs.record_cost,
+        0
+    ) AS `Record Cost`,
+
+    TRIM(
+        SUBSTRING_INDEX(
+            transcription_qc.qc_notes,
+            ''|'',
+            1
+        )
+    ) AS `Feedback Type`,
+
+    TRIM(
+        CASE
+            WHEN LOCATE(''|'', transcription_qc.qc_notes) > 0
+            THEN SUBSTRING(
+                transcription_qc.qc_notes,
+                LOCATE(''|'', transcription_qc.qc_notes) + 1
+            )
+            ELSE NULL
+        END
+    ) AS `Feedback`,
+
+    CASE
+        WHEN transcription_qc.qc_results = 3
+            THEN ''Minor Issue''
+        WHEN transcription_qc.qc_results = 2
+            THEN ''Major Issue''
+        WHEN transcription_qc.qc_results = 1
+            THEN ''Critical Issue''
+        ELSE CAST(
+            transcription_qc.qc_results AS CHAR
+        )
+    END AS `Label QC Result`,
+
+    CASE
+        WHEN transcription_qc_folders.qc_status = 9
+            THEN ''Pending QC Completion''
+        WHEN transcription_qc_folders.qc_status = 1
+            THEN ''Transcription QC Failed''
+        WHEN transcription_qc_folders.qc_status = 0
+            THEN ''Transcription QC Passed''
+        ELSE CAST(
+            transcription_qc_folders.qc_status AS CHAR
+        )
+    END AS `Folder QC Status`
+
+FROM transcription_files
+
+JOIN
+(
+    SELECT DISTINCT
+        file_transcription_id
+    FROM transcription_files_text
+) AS specimen_population
+    ON specimen_population.file_transcription_id =
+       transcription_files.file_transcription_id
+
+JOIN transcription_folders
+    ON transcription_files.folder_transcription_id =
+       transcription_folders.folder_transcription_id
+
+LEFT JOIN transcription_qc
+    ON transcription_files.file_transcription_id =
+       transcription_qc.file_transcription_id
+
+LEFT JOIN transcription_qc_folders
+    ON transcription_folders.folder_transcription_id =
+       transcription_qc_folders.folder_transcription_id
+
+LEFT JOIN transcription_files_text
+    ON transcription_files.file_transcription_id =
+       transcription_files_text.file_transcription_id
+
+LEFT JOIN transcription_fields
+    ON transcription_files_text.field_id =
+       transcription_fields.field_id
+
+LEFT JOIN alembo_ids
+    ON REPLACE(
+        transcription_files.file_name,
+        ''_a_label'',
+        ''''
+    ) = alembo_ids.image
+
+
+-- ==========================================================
+-- COST TABLE
+--
+-- One field cost per populated field.
+--
+-- IMPORTANT:
+-- DISTINCT is used so a field is not charged multiple times
+-- if duplicate text rows exist for the same specimen/field.
+-- ==========================================================
+
+LEFT JOIN
+(
+    SELECT
+
+        populated_fields.file_transcription_id AS record_id,
+
+        SUM(
+            populated_fields.field_cost
+        ) AS record_cost
+
+    FROM
+    (
+        SELECT DISTINCT
+
+            tft.file_transcription_id,
+
+            tf.field_id,
+
+            COALESCE(
+                tf.field_cost,
+                0
+            ) AS field_cost
+
+        FROM transcription_files_text tft
+
+        JOIN transcription_files tfile
+            ON tft.file_transcription_id =
+               tfile.file_transcription_id
+
+        JOIN transcription_folders folder
+            ON tfile.folder_transcription_id =
+               folder.folder_transcription_id
+
+        JOIN transcription_fields tf
+            ON tft.field_id =
+               tf.field_id
+
+        WHERE folder.project_id = 250
+
+          AND tft.transcription_text IS NOT NULL
+
+          AND TRIM(
+              tft.transcription_text
+          ) <> ''''
+
+    ) AS populated_fields
+
+    GROUP BY
+        populated_fields.file_transcription_id
+
+) AS record_costs
+
+    ON record_costs.record_id =
+       transcription_files.file_transcription_id
+
+
+-- ==========================================================
+-- PROJECT FILTER
+-- ==========================================================
+
+WHERE transcription_folders.project_id = 250
+
+
+-- ==========================================================
+-- GROUPING
+-- ==========================================================
+
+GROUP BY
+
+    transcription_files.file_transcription_id,
+
+    alembo_ids.id,
+
+    transcription_folders.folder,
+
+    alembo_ids.deta_batch,
+
+    transcription_files.file_name,
+
+    transcription_qc.qc_notes,
+
+    transcription_qc.qc_results,
+
+    transcription_qc_folders.qc_status,
+
+    record_costs.record_cost
+
+
+-- ==========================================================
+-- SORT
+-- ==========================================================
+
+ORDER BY
+
+    transcription_folders.folder ASC,
+
+    transcription_files.file_name ASC
+'
+);
+
+
+-- ============================================================
+-- 3. EXECUTE DETAILED QUERY
+-- ============================================================
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+-- ============================================================
+-- 4. BUILD SUMMARY
+--
+-- THIS USES THE SAME SPECIMEN POPULATION AS YOUR
+-- REFERENCE QUERY:
+--
+-- transcription_files_text
+--     -> transcription_files
+--     -> transcription_folders
+-- WHERE project_id = 250
+-- GROUP BY file_transcription_id
+--
+-- No QC restriction.
+-- ============================================================
+
+SET @summary_sql = CONCAT(
+'
+SELECT
+
+    COUNT(DISTINCT folder) AS `Folder Count`,
+
+    COUNT(*) AS `Specimen Count`,
+
+    ROUND(
+        SUM(record_cost),
+        4
+    ) AS `Total Cost`,
+
+    ROUND(
+        MIN(record_cost),
+        4
+    ) AS `Minimum Cost Per Specimen`,
+
+    ROUND(
+        MAX(record_cost),
+        4
+    ) AS `Maximum Cost Per Specimen`,
+
+    ROUND(
+        AVG(record_cost),
+        4
+    ) AS `Average Cost Per Specimen`
+
+FROM
+(
+    SELECT
+
+        tft.file_transcription_id AS record_id,
+
+        folder.folder AS folder,
+
+        COALESCE(
+            costs.record_cost,
+            0
+        ) AS record_cost
+
+    FROM
+    (
+        SELECT DISTINCT
+            file_transcription_id
+        FROM transcription_files_text
+    ) AS tft
+
+    JOIN transcription_files tf
+        ON tft.file_transcription_id =
+           tf.file_transcription_id
+
+    JOIN transcription_folders folder
+        ON tf.folder_transcription_id =
+           folder.folder_transcription_id
+
+    LEFT JOIN
+    (
+        SELECT
+
+            populated_fields.file_transcription_id,
+
+            SUM(
+                populated_fields.field_cost
+            ) AS record_cost
+
+        FROM
+        (
+            SELECT DISTINCT
+
+                tft2.file_transcription_id,
+
+                tft2.field_id,
+
+                COALESCE(
+                    tf2.field_cost,
+                    0
+                ) AS field_cost
+
+            FROM transcription_files_text tft2
+
+            JOIN transcription_files tfile2
+                ON tft2.file_transcription_id =
+                   tfile2.file_transcription_id
+
+            JOIN transcription_folders folder2
+                ON tfile2.folder_transcription_id =
+                   folder2.folder_transcription_id
+
+            JOIN transcription_fields tf2
+                ON tft2.field_id =
+                   tf2.field_id
+
+            WHERE folder2.project_id = 250
+
+              AND tft2.transcription_text IS NOT NULL
+
+              AND TRIM(
+                  tft2.transcription_text
+              ) <> ''''
+
+        ) AS populated_fields
+
+        GROUP BY
+            populated_fields.file_transcription_id
+
+    ) AS costs
+
+        ON costs.file_transcription_id =
+           tft.file_transcription_id
+
+    WHERE folder.project_id = 250
+
+) AS specimen_costs
+'
+);
+
+
+-- ============================================================
+-- 5. EXECUTE SUMMARY
+-- ============================================================
+
+PREPARE summary_stmt FROM @summary_sql;
+EXECUTE summary_stmt;
+DEALLOCATE PREPARE summary_stmt;
