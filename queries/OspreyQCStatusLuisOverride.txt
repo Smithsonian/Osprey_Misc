@@ -3,14 +3,22 @@
 UPDATE transcription_qc_folders
 SET
     qc_status = 0,
-	qc_info = CASE
-		WHEN qc_info IS NULL OR qc_info = ''
-			THEN 'Manually changed to pass by NMNH Entomology'
-		WHEN qc_info <> '' AND qc_info NOT LIKE '%Manually changed to pass by NMNH Entomology%'
-			THEN CONCAT(qc_info, ' | Manually changed to pass by NMNH Entomology')
-		ELSE qc_info
-	END
-WHERE folder_transcription_id IN (
+    qc_info = CASE
+        WHEN qc_info IS NULL OR qc_info = ''
+            THEN CONCAT(
+                'Manually changed to pass by NMNH Entomology on ',
+                CURDATE()
+            )
+        WHEN qc_info NOT LIKE '%Manually changed to pass by NMNH Entomology%'
+            THEN CONCAT(
+                qc_info,
+                ' | Manually changed to pass by NMNH Entomology on ',
+                CURDATE()
+            )
+        ELSE qc_info
+    END
+WHERE qc_status = 1
+  AND folder_transcription_id IN (
     SELECT folder_transcription_id
     FROM transcription_folders
     WHERE folder IN (
@@ -26,4 +34,4 @@ WHERE folder_transcription_id IN (
         'USNMENT-MDPP-Pol-0089_20251120_10kfh-sm'
         /* ADD FOLDERS TO SELECT ABOVE */
     )
-	);
+);
